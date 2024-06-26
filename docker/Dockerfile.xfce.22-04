@@ -388,8 +388,8 @@ Pin-Priority: 501" \
 COPY ./xfce-firefox/src/etc/ /etc/
 COPY ./xfce-firefox/src/home/.local/ /root/.local/
 COPY ./xfce-firefox/src/home/.config/ /root/.config/
+COPY ./xfce-firefox/src/tools-config/filezilla/ "${HOME}"/.config/filezilla/
 COPY ./xfce-firefox/src/home/Desktop "${HOME}"/Desktop/
-
 
 ### ##################
 ### stage_firefox_plus
