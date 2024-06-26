@@ -16,3 +16,4 @@ fn_ps1() {
     fi
 }
 alias ps1='fn_ps1'
+alias code='code --user-data-dir="~/.vscode" --no-sandbox'

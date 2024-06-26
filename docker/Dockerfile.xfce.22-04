@@ -49,6 +49,7 @@ RUN \
         gpg \
         jq \
         nano \
+        neofetch \
         psmisc \
         sudo \
         tini \
@@ -118,7 +119,63 @@ RUN \
         systemctl \
         "${ARG_FEATURES_SCREENSHOOTING:+ristretto}" \
         "${ARG_FEATURES_SCREENSHOOTING:+xfce4-screenshooter}" \
-        "${ARG_FEATURES_THUMBNAILING:+tumbler}"
+        "${ARG_FEATURES_THUMBNAILING:+tumbler}" \
+        ca-certificates \
+        curl \
+        filezilla \
+        openjdk-8-jdk \
+        openjdk-11-jdk \
+        openjdk-17-jdk \
+        openjdk-21-jdk
+
+RUN \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt update && \
+    apt install -y \
+      docker-ce \
+      docker-ce-cli \
+      containerd.io \
+      docker-buildx-plugin \
+      docker-compose-plugin
+
+# Install Intellij IDEA
+RUN \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/var/cache/apt,target=/var/cache/apt \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/var/lib/apt,target=/var/lib/apt \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/tmp/g3-cache/,target=/tmp/g3-cache/ \
+    if [ ! -f /tmp/g3-cache/ideaIC-2024.1.2.tar.gz ]; then \
+        wget -q https://download-cdn.jetbrains.com/idea/ideaIC-2024.1.2.tar.gz -P /tmp/g3-cache/; \
+    fi && \
+    tar xf /tmp/g3-cache/ideaIC-2024.1.2.tar.gz -C /opt && \
+    ln -sf /opt/idea-IC-*/bin/idea.sh /usr/local/bin/idea
+
+
+# Install VS Code
+RUN \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/var/cache/apt,target=/var/cache/apt \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/var/lib/apt,target=/var/lib/apt \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/tmp/g3-cache/,target=/tmp/g3-cache/ \
+    if [ ! -f /etc/apt/sources.list.d/vscode.list ]; then \
+        wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | apt-key add - && \
+        echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" | tee /etc/apt/sources.list.d/vscode.list; \
+    fi && \
+    apt-get update && \
+    apt-get install -y code
+
+# Install DBeaver
+RUN \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/var/cache/apt,target=/var/cache/apt \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/var/lib/apt,target=/var/lib/apt \
+    --mount=type=cache,from=stage_cache,sharing=locked,source=/tmp/g3-cache/,target=/tmp/g3-cache/ \
+    if [ ! -s /tmp/g3-cache/dbeaver-ce_latest_amd64.deb ]; then \
+        wget -q https://dbeaver.io/files/dbeaver-ce_latest_amd64.deb -P /tmp/g3-cache/; \
+    fi && \
+    dpkg -i /tmp/g3-cache/dbeaver-ce_latest_amd64.deb || true && \
+    apt install -f -y
 
 
 #############
@@ -328,6 +385,9 @@ Pin-Priority: 501" \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y "${ARG_APT_NO_RECOMMENDS:+--no-install-recommends}" \
         firefox
 
+COPY ./xfce-firefox/src/etc/ /etc/
+COPY ./xfce-firefox/src/home/.local/ /root/.local/
+COPY ./xfce-firefox/src/home/.config/ /root/.config/
 COPY ./xfce-firefox/src/home/Desktop "${HOME}"/Desktop/
 
 
@@ -395,7 +455,8 @@ RUN \
     &&  envsubst <"${HOME}"/Desktop/versionsticker.desktop >/tmp/esub.tmp && mv -f /tmp/esub.tmp "${HOME}"/Desktop/versionsticker.desktop \
     && "${STARTUPDIR}"/set_user_permissions.sh "${STARTUPDIR}" "${HOME}"
 
-USER "${HEADLESS_USER_ID}"
+# use the root user directly --need to check it out
+#USER "${HEADLESS_USER_ID}"
 
 ENTRYPOINT [ "/usr/bin/tini", "--", "/dockerstartup/startup.sh" ]
 

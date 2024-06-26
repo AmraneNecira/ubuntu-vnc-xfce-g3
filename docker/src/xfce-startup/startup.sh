@@ -193,6 +193,39 @@ main() {
     ### this handles also '--skip-vnc' and '--skip-novnc' options
     start_vnc
 
+    ### Start Docker
+    if docker ps > /dev/null 2>&1; then
+        echo "Docker is already running."
+    else
+        echo "Docker is not running. Attempting to start Docker..."
+
+        # Check if the Docker PID file exists and remove it if it does
+        if [ -f /var/run/docker.pid ]; then
+            echo "Found existing docker.pid file. Removing it to prevent conflicts..."
+            rm /var/run/docker.pid
+        else
+            echo "No existing docker.pid file found. Proceeding to start Docker..."
+        fi
+
+        # Start containerd first to ensure Docker's dependency is satisfied
+        echo "Starting containerd to ensure Docker's dependencies are met..."
+        containerd &
+        # Wait a bit to ensure containerd starts properly
+        sleep 5s
+
+        echo "Attempting to start dockerd..."
+        dockerd &
+        # Wait a bit to ensure dockerd has time to start
+        sleep 5s
+
+        # Check again if Docker is running
+        if docker ps > /dev/null 2>&1; then
+            echo "Docker has started successfully."
+        else
+            echo "Failed to start Docker. Please check the logs for errors."
+        fi
+    fi
+
     ### command array expands to all elements quoted as a whole
     execute_command "${_arg_command[*]}"
 
