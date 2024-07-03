@@ -226,6 +226,14 @@ main() {
         fi
     fi
 
+    ### Start Containers
+    docker_setup_script="/root/workdir/docker-setup.sh"
+    if [ -f "$docker_setup_script" ]; then
+        bash "$docker_setup_script"
+    else
+        echo "docker-setup.sh script does not exist."
+    fi
+
     ### command array expands to all elements quoted as a whole
     execute_command "${_arg_command[*]}"
 
